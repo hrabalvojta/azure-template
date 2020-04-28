@@ -1,0 +1,242 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "Location of VM",
+      "metadata": {
+        "description": "Location of VM and other resources deployed with it. Please be aware, that all locations avaiable in MS Azure are not utilized. List of all locations https://azure.microsoft.com/en-us/global-infrastructure/locations/"
+      }
+    },
+    "vmName": {
+      "type": "string",
+      "metadata": {
+        "description": "Hostname of the VM. Don't use full FQDN. MS Azure allow maximum 15 characters for hostname. Please follow the standard naming convention based on ISO Codes - {ISOC}{p/d/t}-{Name}{nn} = ISOCp-NAME01. Example: ABCD01-SQL01"
+      }
+    },
+    "windowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2016-Datacenter",
+      "allowedValues": [
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "2016-Datacenter",
+        "2019-Datacenter"
+      ],
+      "metadata": {
+        "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_A2_v2",
+      "metadata": {
+        "description": "Size of the virtual machine. List with descriptions and purposes https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes"
+      }
+    },
+    "numberOfDisks": {
+      "type": "int",
+      "minValue": 0,
+      "maxValue": 16,
+      "defaultValue": 0,
+      "metadata": {
+        "description": "The number of managed disks to create. Range from 0-16"
+      }
+    },
+    "disksSizes": {
+      "type": "string",
+      "defaultValue": "1,2,3",
+      "metadata": {
+        "description": "Size of the disks (separated by comma in [GB]) for virtual machine. Enter the size of the disk you would like to create. You will be charged the same rate for your provisioned disk, regardless of how much of the disk space is being used For example, a 200 GiB disk is provisioned on a 256 GiB disk, so you would be billed for the 256 GiB provisioned. Other way: keep disk sizes in powers of two: 64, 128, 256, 512, 1024, ..."
+      }
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual Network Name - to which network Virtual Machine will be connected."
+      }
+    },
+    "virtualNetworkResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource Group Virtual Network is deployed."
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the subnet inside the VNET"
+      }
+    },
+    "diagStorageExists": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": [
+        "new",
+        "exists"
+      ],
+      "metadata": {
+        "description": "New or existing daignostic storage."
+      }
+    },
+    "diagStorageName": {
+      "type": "string",
+      "defaultValue": "somethingdiag",
+      "metadata": {
+        "description": "Name of daignostic storage."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "wgadmin",
+      "metadata": {
+        "description": "Username for default administrator for the Virtual Machine."
+      }
+    },
+    "adminPassword": {
+      "type": "secureString",
+      "metadata": {
+        "description": "Password for default administrator for the Virtual Machine."
+      }
+    },
+    "ApplicationTAG": {
+      "type": "string",
+      "defaultValue": "ApplicationNameTag",
+      "metadata": {
+        "description": "Required for Tags. Name of the Project."
+      }
+    },
+    "EnvironmentTAG": {
+      "type": "string",
+      "defaultValue": "Production",
+      "allowedValues": [
+        "Production",
+        "DR",
+        "Staging",
+        "Development"
+      ],
+      "metadata": {
+        "description": "Required for Tags. Select from multiple states: Production, Development, Testing, ..."
+      }
+    },
+    "Managed_byTAG": {
+      "type": "string",
+      "defaultValue": "IBM",
+      "allowedValues": [
+        "IBM",
+        "WoodGroup"
+      ],
+      "metadata": {
+        "description": "Required for Tags. Who will be managing server."
+      }
+    },
+    "RfsIdTAG": {
+      "type": "string",
+      "defaultValue": "RFS Number",
+      "metadata": {
+        "description": "Required for Tags. Number of RFS used for this build. Example: WGRFS1234"
+      }
+    }
+  },
+  "variables": {
+    "nicName": "[concat(parameters(vmName), '-nic')]",
+    "subnetRef": "[resourceId(parameters('virtualNetworkResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'),  parameters('subnetName'))]",
+    "BussinesTAG": "[if(contains(parameters('location'), 'africa')), 'EMEA',if(contains(parameters('location'), 'uae')), 'EMEA',if(contains(parameters('location'), 'asia')), 'APAC',if(contains(parameters('location'), 'australia')), 'APAC',if(contains(parameters('location'), 'india')), 'APAC',if(contains(parameters('location'), 'japan')), 'APAC',if(contains(parameters('location'), 'korea')), 'APAC',if(contains(parameters('location'), 'europe')), 'EMEA',if(contains(parameters('location'), 'france')), 'EMEA',if(contains(parameters('location'), 'uk')), 'EMEA',if(contains(parameters('location'), 'german')), 'EMEA',if(contains(parameters('location'), 'switzerland')), 'EMEA',if(contains(parameters('location'), 'norway')), 'EMEA',if(contains(parameters('location'), 'brazil')), 'AMER',if(contains(parameters('location'), 'canada')), 'AMER',if(contains(parameters('location'), 'us')), 'AMER','Region not Found'))))))))))))))))]",
+    "tags": {
+      "Location": "[parameters('location')]",
+      "Bussines": "[variables('BussinesTAG')]",
+      "Environment": "[parameters('EnvironmentTAG')]",
+      "Application": "[parameters('ApplicationTAG')]",
+      "Managed_by": "[parameters('Managed_byTAG')]",
+      "RFS": "[parameters('RfsIdTAG')]"
+    }
+  },
+  "resources": [
+    {
+      "condition": "[equals(parameters('diagStorageExists'), 'new')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2017-06-01",
+      "name": "[parameters('diagStorageName')]",
+      "location": "[parameters('location')]",
+      "kind": "Storage",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2018-11-01",
+      "name": "[variables('nicName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [{
+          "name": "ipconfig1",
+          "properties": {
+            "privateIPAllocationMethod": "Dynamic",
+            "subnet": {
+              "id": "[variables('subnetRef')]"
+            }
+          }
+        }]
+      },
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2018-10-01",
+      "name": "[variables('vmName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/', parameters('diagStorageName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "[parameters('windowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage"
+          },
+          "copy": [
+            {
+              "name": "dataDisks",
+              "count": "[parameters('numberOfDisks')]",
+              "input": {
+                "diskSizeGB": "[split(parameters('disksSizes'),',').[copyIndex('dataDisks')]]",
+                "lun": "[copyIndex('dataDisks')]",
+                "createOption": "Empty"
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true,
+            "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts/', parameters('diagStorageName'))).primaryEndpoints.blob]"
+          }
+        }
+      },
+      "tags": "[variables('tags')]"
+    }
+  ],
+  "outputs": {
+    "hostname": {
+      "type": "string",
+      "value": "[reference(variables('publicIPAddressName')).dnsSettings.fqdn]"
+    }
+  }
+}
